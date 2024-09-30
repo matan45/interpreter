@@ -2,30 +2,28 @@
 
 #pragma once
 
-#include "lexer.h"
-#include "ast.h"
 #include "types.h"
+#include "lexer.h"
 
-// Function to parse a class definition from the tokens
-ClassNode* parse_class();
 
-// Function to parse a field of a class
-Field* parse_field();
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-// Function to parse a method of a class
-Method* parse_method();
 
-// Function to parse a block of code (e.g., method body)
-BlockNode* parse_block();
+// Static variables for parser state
+static Token current_token;  // Stores the current token being processed
 
-// Function to parse a statement (e.g., assignment, if, for)
-StatementNode* parse_statement();
+// Function prototypes for parsing
 
-// Function to parse an expression (e.g., arithmetic, assignment)
-ExpressionNode* parse_expression();
-
-// Utility function to handle token advancement
+ClassNode* parse_class();     // Parses a class definition
+Field* parse_field();         // Parses a field definition
+Method* parse_method();       // Parses a method definition
+BlockNode* parse_block();     // Parses a block of statements
+StatementNode* parse_statement(); // Parses individual statements
+ExpressionNode* parse_expression(); // Parses an expression
+IfNode* parse_if();           // Parses an if statement
+ForNode* parse_for();         // Parses a for loop
+void match(TokenType expected_type);
 void next_token_wrapper();
 
-// Utility function to ensure the current token is as expected
-void expect(TokenType type);

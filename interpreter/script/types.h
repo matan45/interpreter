@@ -113,6 +113,13 @@ typedef struct Object {
 	Field* field_values;    // Assuming Field is defined elsewhere
 } Object;
 
+typedef struct LocalVariableNode {
+	const char* type;      // Type of the variable (e.g., int, float)
+	const char* name;      // Name of the variable
+	struct ExpressionNode* initializer; // Initial value if present (e.g., x = 5)
+	struct LocalVariableNode* next;     // Pointer to the next local variable
+} LocalVariableNode;
+
 // Block node representing a list of statements
 typedef struct BlockNode {
 	NodeType node_type;        // Type of node (if it's part of a block)
@@ -123,6 +130,7 @@ typedef struct BlockNode {
 		IfNode* ifNode;         // If statement
 		ForNode* forNode;       // For loop
 		ExpressionNode* expression; // Assignment or expressions
+		LocalVariableNode* localVariable; // Local variable declarations
 	};
 } BlockNode;
 

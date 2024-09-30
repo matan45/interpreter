@@ -90,6 +90,7 @@
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="parser.h" />
+    <ClInclude Include="tests.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

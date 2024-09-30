@@ -6,9 +6,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Static variables for lexer state
-static const char* current_source; // Points to the current character in the source code
-
 // Function to initialize the lexer with source code
 void init_lexer(const char* source) {
     current_source = source;
@@ -77,7 +74,13 @@ Token next_token() {
         current_source++;
         token.type = TOKEN_SEMICOLON;
         token.value = ";";
-    } else if (*current_source == '(') {
+	}
+	else if (*current_source == ',') {
+		current_source++;
+		token.type = TOKEN_COMMA;
+		token.value = ",";
+	}
+    else if (*current_source == '(') {
         current_source++;
         token.type = TOKEN_LPAREN;
         token.value = "(";
@@ -105,7 +108,33 @@ Token next_token() {
             token.type = TOKEN_PLUS; // +
             token.value = "+";
         }
-    } else if (*current_source == '-') {
+	}
+	else if (*current_source == '<') {
+        current_source++;
+		if (*current_source == '=') {
+            current_source++;
+			token.type = TOKEN_LESS_EQUAL;
+			token.value = "<=";
+		}
+		else {
+			token.type = TOKEN_LESS;
+			token.value = "<";
+		}
+	}
+	else if (*current_source == '>') {
+        current_source++;
+		if (*current_source == '=') {
+            current_source++;
+			token.type = TOKEN_GREATER_EQUAL;
+			token.value = ">=";
+		}
+		else {
+			token.type = TOKEN_GREATER;
+			token.value = ">";
+		}
+	}
+    
+    else if (*current_source == '-') {
         current_source++;
         if (*current_source == '-') {
             current_source++;

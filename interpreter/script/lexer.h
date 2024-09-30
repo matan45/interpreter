@@ -10,6 +10,9 @@ typedef struct {
     const char* value; // Pointer to the value (used for identifiers and literals)
 } Token;
 
+// Static variables for lexer state
+static const char* current_source; // Points to the current character in the source code
+
 // Function prototypes
 void init_lexer(const char* source);
 Token next_token();

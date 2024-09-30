@@ -33,6 +33,14 @@ typedef enum {
     TOKEN_GREATER_EQUAL, // >=
     TOKEN_EQUAL,         // ==
     TOKEN_NOT_EQUAL,     // !=
+	TOKEN_SWITCH,
+	TOKEN_CASE,
+	TOKEN_DEFAULT,
+	TOKEN_COLON,
+	TOKEN_OR, 
+	TOKEN_AND,
+	TOKEN_WHILE,
+	TOKEN_DO,
     TOKEN_END,           // End of input
     TOKEN_UNKNOWN        // Unknown or error token
 } TokenType;
@@ -145,7 +153,28 @@ typedef struct SymbolTable {
 
 
 
-// Field structure representing a class's member variables
+typedef struct WhileNode {
+	ExpressionNode* condition;   // Condition for the while loop (e.g., x > 5)
+	BlockNode* body;             // Body of the while loop (statements to execute in the loop)
+} WhileNode;
+
+typedef struct DoWhileNode {
+	BlockNode* body;             // Body of the do-while loop (statements to execute at least once)
+	ExpressionNode* condition;   // Condition for the do-while loop (e.g., x < 10)
+} DoWhileNode;
+
+typedef struct CaseNode {
+	int value;                   // The value for the case (e.g., case 1:) or -1 for default
+	BlockNode* statements;       // Statements to execute for this case
+	struct CaseNode* next;       // Pointer to the next case (for linked list structure)
+} CaseNode;
+
+
+typedef struct SwitchNode {
+	ExpressionNode* expression;  // Expression to evaluate in the switch (e.g., switch(x))
+	struct CaseNode* cases;      // Pointer to the first CaseNode (linked list of cases)
+} SwitchNode;
+
 
 
 // Parameter node for method parameters

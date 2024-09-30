@@ -26,7 +26,7 @@ IfNode* parse_if() {
 		exit(1);
 	}
 
-	// Expect "if" keyword
+	// Expect the "if" keyword
 	if (current_token.type == TOKEN_IF) {
 		next_token_wrapper();  // Move past "if"
 	}
@@ -35,16 +35,12 @@ IfNode* parse_if() {
 		exit(1);
 	}
 
-	// Expect '(' for the condition
+	// Expect '(' and then parse the condition
 	match(TOKEN_LPAREN);
-
-	// Parse the condition inside the parentheses (e.g., `x > 5`)
-	if_node->condition = parse_expression();
-
-	// Expect ')' after the condition
+	if_node->condition = parse_expression();  // Parse the full condition expression
 	match(TOKEN_RPAREN);
 
-	// Parse the block of the if statement (true block)
+	// Parse the true block of the if statement
 	match(TOKEN_LBRACE);
 	if_node->trueBlock = parse_block();
 
@@ -60,6 +56,7 @@ IfNode* parse_if() {
 
 	return if_node;
 }
+
 
 
 // Parse a `for` loop: `for (init; condition; update) { ... }`
@@ -98,7 +95,7 @@ ForNode* parse_for() {
 
 		// Expect an identifier for the variable name
 		if (current_token.type == TOKEN_IDENTIFIER) {
-			for_node->initializer->variable = current_token.value;
+			for_node->initializer->variable = (char*)current_token.value;
 			for_node->initializer->value = 0;  // Default value for the identifier
 			next_token_wrapper();  // Move past the identifier
 		}
@@ -412,7 +409,7 @@ StatementNode* parse_statement() {
 	// Handle assignment statement (like `x = 10;`)
 	else if (current_token.type == TOKEN_IDENTIFIER) {
 		// Capture the identifier (variable name)
-		char* variable_name = current_token.value;
+		char* variable_name = (char*)current_token.value;
 		next_token_wrapper();  // Move past the identifier
 
 		// Check for assignment operator '='
@@ -501,39 +498,225 @@ StatementNode* parse_statement() {
 }
 
 
-
-// Parse an expression (a simplified version, handling only literals and identifiers)
-ExpressionNode* parse_expression() {
-	// Parse the left-hand side of the expression
-	ExpressionNode* left = (ExpressionNode*)malloc(sizeof(ExpressionNode));
-	if (!left) {
+// Parse factor: handles numbers, variables, and expressions in parentheses
+ExpressionNode* parse_factor() {
+	ExpressionNode* node = (ExpressionNode*)malloc(sizeof(ExpressionNode));
+	if (!node) {
 		printf("Error: Memory allocation failed for ExpressionNode.\n");
 		exit(1);
 	}
 
-	// Parse either an identifier or a literal as the left operand
+	// Handle identifiers (variables)
 	if (current_token.type == TOKEN_IDENTIFIER) {
-		left->variable = current_token.value;
-		left->value = 0; // Placeholder for literals when it's an identifier
-		left->next = NULL;
+		node->variable = current_token.value;  // Store variable name
+		node->value = 0;  // Not a literal
+		node->next = NULL;
 		next_token_wrapper();  // Move past the identifier
 	}
+	// Handle integer literals
 	else if (current_token.type == TOKEN_INT) {
-		left->variable = NULL;
-		left->value = atoi(current_token.value);
-		left->next = NULL;
+		node->variable = NULL;  // No variable name for literals
+		node->value = atoi(current_token.value);  // Convert token value to integer
+		node->next = NULL;
 		next_token_wrapper();  // Move past the integer literal
 	}
+	// Handle parenthesized expressions: (expression)
+	else if (current_token.type == TOKEN_LPAREN) {
+		next_token_wrapper();  // Move past '('
+		node = parse_expression();  // Parse the expression inside parentheses
+		if (current_token.type != TOKEN_RPAREN) {
+			printf("Error: Expected TOKEN_RPAREN but found %s\n", token_type_to_string(current_token.type));
+			exit(1);
+		}
+		next_token_wrapper();  // Move past ')'
+	}
+	// Handle unexpected end of input
+	else if (current_token.type == TOKEN_END) {
+		printf("Error: Unexpected end of input while parsing factor.\n");
+		free(node);
+		exit(1);
+	}
+	// Handle unknown token
 	else {
-		printf("Error: Unexpected token in expression: %s\n", token_type_to_string(current_token.type));
+		printf("Error: Unexpected token in factor: %s\n", token_type_to_string(current_token.type));
+		free(node);
 		exit(1);
 	}
 
-	// Handle binary operators like `>`, `<`, `>=`, `<=`, `+`, `-`
+	return node;
+}
+
+// Parse terms: handles multiplication (*) and division (/)
+ExpressionNode* parse_term() {
+	ExpressionNode* left = parse_factor();  // Parse the first factor
+
+	while (current_token.type == TOKEN_MULTIPLY || current_token.type == TOKEN_DIVIDE) {
+		ExpressionNode* operator_node = (ExpressionNode*)malloc(sizeof(ExpressionNode));
+		if (!operator_node) {
+			printf("Error: Memory allocation failed for ExpressionNode.\n");
+			exit(1);
+		}
+
+		// Set the operator value
+		if (current_token.type == TOKEN_MULTIPLY) {
+			operator_node->value = '*';
+		}
+		else if (current_token.type == TOKEN_DIVIDE) {
+			operator_node->value = '/';
+		}
+
+		operator_node->variable = NULL;  // Operators do not have variable names
+		next_token_wrapper();  // Move past the operator
+
+		// Parse the right-hand side factor
+		operator_node->next = parse_factor();
+
+		// Link nodes
+		operator_node->next->next = NULL;  // Ensure right-hand next is NULL
+		operator_node->next = left;  // Operator points to left operand
+		left = operator_node;  // Update left to point to operator
+	}
+
+	return left;
+}
+
+WhileNode* parse_while() {
+	WhileNode* while_node = (WhileNode*)malloc(sizeof(WhileNode));
+	if (!while_node) {
+		printf("Error: Memory allocation failed for WhileNode.\n");
+		exit(1);
+	}
+
+	// Expect "while" keyword
+	if (current_token.type == TOKEN_WHILE) {
+		next_token_wrapper();  // Move past "while"
+	}
+	else {
+		printf("Error: Expected 'while' but found %s\n", token_type_to_string(current_token.type));
+		exit(1);
+	}
+
+	// Expect '(' and parse condition
+	match(TOKEN_LPAREN);
+	while_node->condition = parse_expression();
+	match(TOKEN_RPAREN);
+
+	// Parse the body of the while loop
+	match(TOKEN_LBRACE);
+	while_node->body = parse_block();
+	match(TOKEN_RBRACE);
+
+	return while_node;
+}
+
+DoWhileNode* parse_do_while() {
+	DoWhileNode* do_while_node = (DoWhileNode*)malloc(sizeof(DoWhileNode));
+	if (!do_while_node) {
+		printf("Error: Memory allocation failed for DoWhileNode.\n");
+		exit(1);
+	}
+
+	// Expect "do" keyword
+	if (current_token.type == TOKEN_DO) {
+		next_token_wrapper();  // Move past "do"
+	}
+	else {
+		printf("Error: Expected 'do' but found %s\n", token_type_to_string(current_token.type));
+		exit(1);
+	}
+
+	// Parse the body of the do-while loop
+	match(TOKEN_LBRACE);
+	do_while_node->body = parse_block();
+	match(TOKEN_RBRACE);
+
+	// Expect "while" keyword and parse condition
+	if (current_token.type == TOKEN_WHILE) {
+		next_token_wrapper();  // Move past "while"
+	}
+	else {
+		printf("Error: Expected 'while' but found %s\n", token_type_to_string(current_token.type));
+		exit(1);
+	}
+	match(TOKEN_LPAREN);
+	do_while_node->condition = parse_expression();
+	match(TOKEN_RPAREN);
+	match(TOKEN_SEMICOLON);
+
+	return do_while_node;
+}
+
+SwitchNode* parse_switch() {
+	SwitchNode* switch_node = (SwitchNode*)malloc(sizeof(SwitchNode));
+	if (!switch_node) {
+		printf("Error: Memory allocation failed for SwitchNode.\n");
+		exit(1);
+	}
+
+	// Expect "switch" keyword
+	if (current_token.type == TOKEN_SWITCH) {
+		next_token_wrapper();  // Move past "switch"
+	}
+	else {
+		printf("Error: Expected 'switch' but found %s\n", token_type_to_string(current_token.type));
+		exit(1);
+	}
+
+	// Expect '(' and parse the switch expression
+	match(TOKEN_LPAREN);
+	switch_node->expression = parse_expression();
+	match(TOKEN_RPAREN);
+
+	// Parse the body of the switch statement
+	match(TOKEN_LBRACE);
+	CaseNode* current_case = NULL;
+
+	while (current_token.type == TOKEN_CASE || current_token.type == TOKEN_DEFAULT) {
+		CaseNode* case_node = (CaseNode*)malloc(sizeof(CaseNode));
+		if (!case_node) {
+			printf("Error: Memory allocation failed for CaseNode.\n");
+			exit(1);
+		}
+
+		if (current_token.type == TOKEN_CASE) {
+			next_token_wrapper();  // Move past "case"
+			case_node->value = atoi(current_token.value);
+			next_token_wrapper();  // Move past value
+			match(TOKEN_COLON);
+		}
+		else if (current_token.type == TOKEN_DEFAULT) {
+			next_token_wrapper();  // Move past "default"
+			match(TOKEN_COLON);
+			case_node->value = -1; // Use -1 or another marker for "default"
+		}
+
+		case_node->statements = parse_block();  // Parse statements in the case
+		case_node->next = NULL;
+
+		if (current_case == NULL) {
+			switch_node->cases = case_node;
+		}
+		else {
+			current_case->next = case_node;
+		}
+		current_case = case_node;
+	}
+
+	match(TOKEN_RBRACE);
+	return switch_node;
+}
+
+
+// Parse an expression (a simplified version, handling only literals and identifiers)
+
+ExpressionNode* parse_expression() {
+	ExpressionNode* left = parse_term();  // Start by parsing a term (handles *, /)
+
 	while (current_token.type == TOKEN_PLUS || current_token.type == TOKEN_MINUS ||
 		current_token.type == TOKEN_GREATER || current_token.type == TOKEN_LESS ||
 		current_token.type == TOKEN_GREATER_EQUAL || current_token.type == TOKEN_LESS_EQUAL ||
-		current_token.type == TOKEN_EQUAL || current_token.type == TOKEN_NOT_EQUAL) {
+		current_token.type == TOKEN_EQUAL || current_token.type == TOKEN_NOT_EQUAL ||
+		current_token.type == TOKEN_AND || current_token.type == TOKEN_OR) {
 
 		// Create a new operator node
 		ExpressionNode* operator_node = (ExpressionNode*)malloc(sizeof(ExpressionNode));
@@ -542,63 +725,52 @@ ExpressionNode* parse_expression() {
 			exit(1);
 		}
 
-		// Set the operator type
+		// Set operator value based on token type
 		if (current_token.type == TOKEN_PLUS) {
-			operator_node->value = '+';  // Use ASCII value for plus
+			operator_node->value = '+';
 		}
 		else if (current_token.type == TOKEN_MINUS) {
-			operator_node->value = '-';  // Use ASCII value for minus
+			operator_node->value = '-';
 		}
 		else if (current_token.type == TOKEN_GREATER) {
-			operator_node->value = '>';  // Use ASCII value for greater-than
+			operator_node->value = '>';
 		}
 		else if (current_token.type == TOKEN_LESS) {
-			operator_node->value = '<';  // Use ASCII value for less-than
+			operator_node->value = '<';
 		}
 		else if (current_token.type == TOKEN_GREATER_EQUAL) {
-			operator_node->value = '>=';   // Custom value for greater-equal (using placeholder values)
+			operator_node->value = '>=';  // Custom value for '>='
 		}
 		else if (current_token.type == TOKEN_LESS_EQUAL) {
-			operator_node->value = '<=';   // Custom value for less-equal
+			operator_node->value = '<=';  // Custom value for '<='
 		}
 		else if (current_token.type == TOKEN_EQUAL) {
-			operator_node->value = '==';   // Custom value for equality
+			operator_node->value = '==';  // Custom value for '=='
 		}
 		else if (current_token.type == TOKEN_NOT_EQUAL) {
-			operator_node->value = '!=';   // Custom value for not-equal
+			operator_node->value = '==';  // Custom value for '!='
 		}
-		operator_node->variable = NULL;  // Operators do not have variable names
+		else if (current_token.type == TOKEN_AND) {
+			operator_node->value = '&&';  // Representing logical AND (&&)
+		}
+		else if (current_token.type == TOKEN_OR) {
+			operator_node->value = '||';  // Representing logical OR (||)
+		}
+
+		operator_node->variable = NULL;  // Operators do not represent variables
 		next_token_wrapper();  // Move past the operator
 
-		// Parse the right-hand side of the operator
-		ExpressionNode* right = (ExpressionNode*)malloc(sizeof(ExpressionNode));
-		if (!right) {
-			printf("Error: Memory allocation failed for ExpressionNode.\n");
-			exit(1);
-		}
+		// Parse the right-hand side term
+		ExpressionNode* right = parse_term();  // Get the right operand for the operator
 
-		if (current_token.type == TOKEN_IDENTIFIER) {
-			right->variable = current_token.value;  // Assign the variable name
-			right->value = 0;                       // No direct value since this is an identifier
-			right->next = NULL;
-			next_token_wrapper();  // Move past the identifier
-		}
-		else if (current_token.type == TOKEN_INT) {
-			right->variable = NULL;                 // Not an identifier, so no variable name
-			right->value = atoi(current_token.value);  // Assign the literal value
-			right->next = NULL;
-			next_token_wrapper();  // Move past the literal
-		}
-		else {
-			printf("Error: Expected literal or identifier but found %s\n", token_type_to_string(current_token.type));
-			exit(1);
-		}
-
-		// Link the operator node and right operand to the left side
-		operator_node->next = right;  // Operator points to the right-hand operand
-		left->next = operator_node;   // Left operand points to the operator
-		left = operator_node;         // Update left to continue parsing if more operators follow
+		// Link nodes
+		operator_node->next = right;  // Operator points to right-hand operand
+		operator_node->next->next = NULL;  // Ensure right operand's next is NULL
+		operator_node->next = left;  // Operator points back to left operand
+		left = operator_node;  // Update left to point to operator node
 	}
 
 	return left;
 }
+
+

@@ -10,6 +10,11 @@ int main(int argc, char* argv[]) {
 	RUN_TEST(test_parse_if_statement);
 	RUN_TEST(test_parse_for_loop);
 
+	RUN_TEST(test_parse_complex_expressions);
+	RUN_TEST(test_parse_while_loop);
+	RUN_TEST(test_parse_do_while_loop);
+	RUN_TEST(test_parse_switch_statement);
+
 	printf("All tests completed.\n");
 
     return 0;

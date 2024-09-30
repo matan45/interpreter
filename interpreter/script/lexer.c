@@ -18,6 +18,7 @@ void skip_whitespace() {
     }
 }
 
+
 // Function to retrieve the next token from the source code
 Token next_token() {
     skip_whitespace(); // Skip any whitespace
@@ -61,6 +62,41 @@ Token next_token() {
         token.type = TOKEN_ELSE;
         token.value = "else";
     }
+	else if (strncmp(current_source, "switch", 6) == 0 && !isalnum(current_source[6])) {
+		current_source += 6;
+		token.type = TOKEN_SWITCH;
+		token.value = "switch";
+	}
+	else if (strncmp(current_source, "case", 4) == 0 && !isalnum(current_source[4])) {
+		current_source += 4;
+		token.type = TOKEN_CASE;
+		token.value = "case";
+	}
+	else if (strncmp(current_source, "default", 7) == 0 && !isalnum(current_source[7])) {
+		current_source += 7;
+		token.type = TOKEN_DEFAULT;
+		token.value = "default";
+	}
+	else if (strncmp(current_source, "||", 2) == 0 && !isalnum(current_source[2])) {
+		current_source += 2;
+		token.type = TOKEN_OR;
+		token.value = "||";
+	}
+	else if (strncmp(current_source, "&&", 2) == 0 && !isalnum(current_source[2])) {
+		current_source += 2;
+		token.type = TOKEN_AND;
+		token.value = "&&";
+	}
+	else if (strncmp(current_source, "while", 5) == 0 && !isalnum(current_source[5])) {
+		current_source += 5;
+		token.type = TOKEN_WHILE;
+		token.value = "while";
+	}
+	else if (strncmp(current_source, "do", 2) == 0 && !isalnum(current_source[2])) {
+		current_source += 2;
+		token.type = TOKEN_DO;
+		token.value = "do";
+	}
     // Symbol matching
     else if (*current_source == '{') {
         current_source++;

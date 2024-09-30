@@ -125,3 +125,81 @@ int test_parse_for_loop() {
 
 	return 1; // Test passed
 }
+
+int test_parse_complex_expressions() {
+	// Test expression: (x + 5) * (y - 3)
+	const char* source_code = "(x + 5) * (y - 3)";
+	init_lexer(source_code);
+	ExpressionNode* expr = parse_expression();
+
+	ASSERT(expr != NULL, "Expected a valid expression node.");
+	ASSERT(expr->value == '*', "Expected '*' as the root operator of the expression.");
+	ASSERT(expr->next != NULL, "Expected operator node to have a right-hand operand.");
+
+	// Test logical expression: x > 5 && y < 10
+	const char* source_code2 = "x > 5 && y < 10";
+	init_lexer(source_code2);
+	expr = parse_expression();
+
+	ASSERT(expr != NULL, "Expected a valid expression node for logical operation.");
+	ASSERT(expr->value == '&', "Expected '&&' represented by '&' as logical AND.");
+	ASSERT(expr->next != NULL, "Expected a valid right-hand operand.");
+	printf("test_parse_complex_expressions passed.\n");
+
+	return 1; // Test passed
+}
+
+int test_parse_while_loop() {
+	// Source code for a while loop
+	const char* source_code = "while (x > 5) { x = x - 1; }";
+	init_lexer(source_code);
+	WhileNode* while_node = parse_while();
+
+	ASSERT(while_node != NULL, "Expected a valid WhileNode.");
+	ASSERT(while_node->condition != NULL, "Expected a valid condition in the while loop.");
+	ASSERT(strcmp(while_node->condition->variable, "x") == 0, "Expected condition to reference variable 'x'.");
+	ASSERT(while_node->body != NULL, "Expected a valid body block for the while loop.");
+	printf("test_parse_while_loop passed.\n");
+	return 1; // Test passed
+}
+
+int test_parse_do_while_loop() {
+	// Source code for a do-while loop
+	const char* source_code = "do { x = x + 1; } while (x < 10);";
+	init_lexer(source_code);
+	DoWhileNode* do_while_node = parse_do_while();
+
+	ASSERT(do_while_node != NULL, "Expected a valid DoWhileNode.");
+	ASSERT(do_while_node->body != NULL, "Expected a valid body block for the do-while loop.");
+	ASSERT(do_while_node->condition != NULL, "Expected a valid condition for the do-while loop.");
+	ASSERT(strcmp(do_while_node->condition->variable, "x") == 0, "Expected condition to reference variable 'x'.");
+	printf("test_parse_do_while_loop passed.\n");
+	return 1; // Test passed
+}
+
+int test_parse_switch_statement() {
+	// Source code for a switch statement
+	const char* source_code = "switch (x) { case 1: x = 10; break; case 2: x = 20; break; default: x = 0; }";
+	init_lexer(source_code);
+	SwitchNode* switch_node = parse_switch();
+
+	ASSERT(switch_node != NULL, "Expected a valid SwitchNode.");
+	ASSERT(switch_node->expression != NULL, "Expected a valid switch expression.");
+	ASSERT(strcmp(switch_node->expression->variable, "x") == 0, "Expected switch expression to reference variable 'x'.");
+
+	CaseNode* case_node = switch_node->cases;
+	ASSERT(case_node != NULL, "Expected at least one case statement.");
+	ASSERT(case_node->value == 1, "Expected the first case value to be '1'.");
+	ASSERT(case_node->statements != NULL, "Expected statements in the first case.");
+
+	case_node = case_node->next;
+	ASSERT(case_node != NULL, "Expected a second case statement.");
+	ASSERT(case_node->value == 2, "Expected the second case value to be '2'.");
+
+	ASSERT(case_node->next != NULL, "Expected a default case.");
+	ASSERT(case_node->next->value == -1, "Expected default case marker value.");
+	printf("test_parse_switch_statement passed.\n");
+
+	return 1; // Test passed
+}
+

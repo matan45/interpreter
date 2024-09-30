@@ -26,4 +26,9 @@ IfNode* parse_if();           // Parses an if statement
 ForNode* parse_for();         // Parses a for loop
 void match(TokenType expected_type);
 void next_token_wrapper();
+ExpressionNode* parse_factor();
+ExpressionNode* parse_term();
+WhileNode* parse_while();
+DoWhileNode* parse_do_while();
+SwitchNode* parse_switch();
 

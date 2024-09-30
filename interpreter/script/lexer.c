@@ -1,271 +1,197 @@
+// lexer.c
+
 #include "lexer.h"
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
 
+// Static variables for lexer state
+static const char* current_source; // Points to the current character in the source code
 
-
-
-void push(StackNode** top, char value) {
-	StackNode* newNode = (StackNode*)malloc(sizeof(StackNode));
-	newNode->data = value;
-	newNode->next = *top;
-	*top = newNode;
+// Function to initialize the lexer with source code
+void init_lexer(const char* source) {
+    current_source = source;
 }
 
-char pop(StackNode** top) {
-	if (*top == NULL) return '\0';
-	StackNode* temp = *top;
-	char popped = temp->data;
-	*top = (*top)->next;
-	free(temp);
-	return popped;
+// Function to skip over whitespace characters
+void skip_whitespace() {
+    while (*current_source == ' ' || *current_source == '\t' || *current_source == '\n' || *current_source == '\r') {
+        current_source++;
+    }
 }
 
-int is_empty(StackNode* top) {
-	return top == NULL;
+// Function to retrieve the next token from the source code
+Token next_token() {
+    skip_whitespace(); // Skip any whitespace
+
+    Token token;
+    token.value = NULL;
+
+    if (*current_source == '\0') {
+        token.type = TOKEN_END;
+        token.value = "end";
+        return token;
+    }
+
+    // Keyword and identifier matching
+    if (strncmp(current_source, "class", 5) == 0 && !isalnum(current_source[5])) {
+        current_source += 5;
+        token.type = TOKEN_CLASS;
+        token.value = "class";
+    } else if (strncmp(current_source, "int", 3) == 0 && !isalnum(current_source[3])) {
+        current_source += 3;
+        token.type = TOKEN_INT;
+        token.value = "int";
+    } else if (strncmp(current_source, "float", 5) == 0 && !isalnum(current_source[5])) {
+        current_source += 5;
+        token.type = TOKEN_FLOAT;
+        token.value = "float";
+    } else if (strncmp(current_source, "void", 4) == 0 && !isalnum(current_source[4])) {
+        current_source += 4;
+        token.type = TOKEN_VOID;
+        token.value = "void";
+    } else if (strncmp(current_source, "for", 3) == 0 && !isalnum(current_source[3])) {
+        current_source += 3;
+        token.type = TOKEN_FOR;
+        token.value = "for";
+    } else if (strncmp(current_source, "if", 2) == 0 && !isalnum(current_source[2])) {
+        current_source += 2;
+        token.type = TOKEN_IF;
+        token.value = "if";
+    } else if (strncmp(current_source, "else", 4) == 0 && !isalnum(current_source[4])) {
+        current_source += 4;
+        token.type = TOKEN_ELSE;
+        token.value = "else";
+    }
+    // Symbol matching
+    else if (*current_source == '{') {
+        current_source++;
+        token.type = TOKEN_LBRACE;
+        token.value = "{";
+    } else if (*current_source == '}') {
+        current_source++;
+        token.type = TOKEN_RBRACE;
+        token.value = "}";
+    } else if (*current_source == ';') {
+        current_source++;
+        token.type = TOKEN_SEMICOLON;
+        token.value = ";";
+    } else if (*current_source == '(') {
+        current_source++;
+        token.type = TOKEN_LPAREN;
+        token.value = "(";
+    } else if (*current_source == ')') {
+        current_source++;
+        token.type = TOKEN_RPAREN;
+        token.value = ")";
+    } else if (*current_source == '=') {
+        current_source++;
+        if (*current_source == '=') {
+            current_source++;
+            token.type = TOKEN_EQUAL; // ==
+            token.value = "==";
+        } else {
+            token.type = TOKEN_ASSIGN; // =
+            token.value = "=";
+        }
+    } else if (*current_source == '+') {
+        current_source++;
+        if (*current_source == '+') {
+            current_source++;
+            token.type = TOKEN_INCREMENT; // ++
+            token.value = "++";
+        } else {
+            token.type = TOKEN_PLUS; // +
+            token.value = "+";
+        }
+    } else if (*current_source == '-') {
+        current_source++;
+        if (*current_source == '-') {
+            current_source++;
+            token.type = TOKEN_DECREMENT; // --
+            token.value = "--";
+        } else {
+            token.type = TOKEN_MINUS; // -
+            token.value = "-";
+        }
+    } else if (isalpha(*current_source)) {
+        // Identifiers (names of variables, functions, etc.)
+        const char* start = current_source;
+        while (isalnum(*current_source) || *current_source == '_') {
+            current_source++;
+        }
+        size_t length = current_source - start;
+        char* identifier = (char*)malloc(length + 1);
+        strncpy(identifier, start, length);
+        identifier[length] = '\0';
+        token.type = TOKEN_IDENTIFIER;
+        token.value = identifier;
+    } else if (isdigit(*current_source)) {
+        // Integer literals
+        const char* start = current_source;
+        while (isdigit(*current_source)) {
+            current_source++;
+        }
+        size_t length = current_source - start;
+        char* int_literal = (char*)malloc(length + 1);
+        strncpy(int_literal, start, length);
+        int_literal[length] = '\0';
+        token.type = TOKEN_INT; // Treat as literal if appropriate
+        token.value = int_literal;
+    } else {
+        // Unknown or error token
+		char* unknown = (char*)malloc(2); // Allocate space for the unknown character and null terminator
+        unknown[0] = *current_source;
+        unknown[1] = '\0';
+        token.type = TOKEN_UNKNOWN;
+        token.value = unknown;
+        current_source++; // Move to the next character
+    }
+
+    return token;
 }
 
-int is_matching_pair(char open, char close) {
-	return (open == '(' && close == ')') ||
-		(open == '{' && close == '}') ||
-		(open == '[' && close == ']');
-}
-
-// Check for balanced parentheses, braces, and brackets
-int check_balance(const char** src) {
-	StackNode* stack = NULL;
-
-	while (**src != '\0') {
-		if (**src == '(' || **src == '{' || **src == '[') {
-			push(&stack, **src);
-		}
-		else if (**src == ')' || **src == '}' || **src == ']') {
-			if (is_empty(stack)) {
-				return 0; // Unbalanced
-			}
-			char top = pop(&stack);
-			if (!is_matching_pair(top, **src)) {
-				return 0; // Unbalanced
-			}
-		}
-		(*src)++;
-	}
-
-	return is_empty(stack); // If stack is empty, parentheses are balanced
-}
-
-// Skip whitespace
-void skip_whitespace(const char** src) {
-	while (**src == ' ' || **src == '\n' || **src == '\t') {
-		(*src)++;
-	}
-}
-
-// Tokenizing the source code
-Token next_token(const char** src) {
-	skip_whitespace(src);
-
-	Token token; // Create a Token variable
-	token.value = NULL; // Initialize value to NULL
-
-	// Keyword and symbol matching
-	if (strncmp(*src, "class", 5) == 0 && !isalnum((*src)[5])) {
-		*src += 5;
-		token.type = TOKEN_CLASS;
-		token.value = "class";
-	}
-	else if (strncmp(*src, "int", 3) == 0 && !isalnum((*src)[3])) {
-		*src += 3;
-		token.type = TOKEN_INT;
-		token.value = "int";
-	}
-	else if (strncmp(*src, "float", 5) == 0 && !isalnum((*src)[5])) {
-		*src += 5;
-		token.type = TOKEN_FLOAT;
-		token.value = "float";
-	}
-	else if (strncmp(*src, "void", 4) == 0 && !isalnum((*src)[4])) {
-		*src += 4;
-		token.type = TOKEN_VOID;
-		token.value = "void";
-	}
-	else if (strncmp(*src, "for", 3) == 0 && !isalnum((*src)[3])) {
-		*src += 3;
-		token.type = TOKEN_FOR;
-		token.value = "for";
-	}
-	else if (strncmp(*src, "if", 2) == 0 && !isalnum((*src)[2])) {
-		*src += 2;
-		token.type = TOKEN_IF;
-		token.value = "if";
-	}
-	else if (strncmp(*src, "else", 4) == 0 && !isalnum((*src)[4])) {
-		*src += 4;
-		token.type = TOKEN_ELSE;
-		token.value = "else";
-	}
-	else if (**src == '{') {
-		(*src)++;
-		token.type = TOKEN_LBRACE;
-		token.value = "{";
-	}
-	else if (**src == '}') {
-		(*src)++;
-		token.type = TOKEN_RBRACE;
-		token.value = "}";
-	}
-	else if (**src == ';') {
-		(*src)++;
-		token.type = TOKEN_SEMICOLON;
-		token.value = ";";
-	}
-	else if (**src == ',') {
-		(*src)++;
-		token.type = TOKEN_COMMA;
-		token.value = ",";
-	}
-	else if (**src == '(') {
-		(*src)++;
-		token.type = TOKEN_LPAREN;
-		token.value = "(";
-	}
-	else if (**src == ')') {
-		(*src)++;
-		token.type = TOKEN_RPAREN;
-		token.value = ")";
-	}
-	// Recognize comparison operators
-	else if (**src == '<') {
-		(*src)++;
-		if (**src == '=') {
-			(*src)++;
-			token.type = TOKEN_LESS_EQUAL;
-			token.value = "<=";
-		}
-		else {
-			token.type = TOKEN_LESS;
-			token.value = "<";
-		}
-	}
-	else if (**src == '>') {
-		(*src)++;
-		if (**src == '=') {
-			(*src)++;
-			token.type = TOKEN_GREATER_EQUAL;
-			token.value = ">=";
-		}
-		else {
-			token.type = TOKEN_GREATER;
-			token.value = ">";
-		}
-	}
-	else if (**src == '==') {
-		(*src)++;
-		if (**src == '==') {
-			(*src)++;
-			token.type = TOKEN_EQUAL;
-			token.value = "==";
-		}
-		else {
-			// Handle assignment '=' if needed
-		}
-	}
-	else if (**src == '=') {
-		(*src)++;
-		if (**src == '=') {
-			(*src)++;
-			token.type = TOKEN_EQUAL;  // ==
-			token.value = "==";
-		}
-		else {
-			token.type = TOKEN_ASSIGN;  // =
-			token.value = "=";
-		}
-	}
-	else if (**src == '!') {
-		(*src)++;
-		if (**src == '=') {
-			(*src)++;
-			token.type = TOKEN_NOT_EQUAL;
-			token.value = "!=";
-		}
-		else {
-			token.type = TOKEN_UNKNOWN;
-			token.value = "!";
-		}
-	}
-	else if (**src == '+') {
-		(*src)++;
-		if (**src == '+') {
-			(*src)++;
-			token.type = TOKEN_INCREMENT;  // ++
-			token.value = "++";
-		}
-		else {
-			token.type = TOKEN_PLUS;
-			token.value = "+";
-		}
-	}
-	else if (**src == '*') {
-		(*src)++;
-		token.type = TOKEN_MULTIPLY;  // *
-		token.value = "*";
-	}
-	else if (**src == '/') {
-		(*src)++;
-		token.type = TOKEN_DIVIDE;  // /
-		token.value = "/";
-	}
-	else if (**src == '-') {
-		(*src)++;
-		if (**src == '-') {
-			(*src)++;
-			token.type = TOKEN_DECREMENT;  // --
-			token.value = "--";
-		}
-		else {
-			token.type = TOKEN_MINUS;
-			token.value = "-";
-		}
-	}
-	else if (isalpha(**src)) {
-		const char* start = *src;
-		while (isalnum(**src) || **src == '_') (*src)++;
-		size_t length = *src - start;
-		char* value = (char*)malloc(length + 1);
-		strncpy(value, start, length);
-		value[length] = '\0';
-		token.type = TOKEN_IDENTIFIER;
-		token.value = value;
-	}
-	// Recognize integers
-	else if (isdigit(**src)) {
-		const char* start = *src;
-		while (isdigit(**src)) (*src)++;
-		size_t length = *src - start;
-		char* value = (char*)malloc(length + 1);
-		strncpy(value, start, length);
-		value[length] = '\0';
-		token.type = TOKEN_INT;
-		token.value = value;
-	}
-	else if (**src == '\0') {
-		token.type = TOKEN_END;
-		token.value = "end";
-	}
-	else {
-		char* unknown_value = (char*)malloc(2);
-		unknown_value[0] = **src;
-		unknown_value[1] = '\0';
-		token.type = TOKEN_UNKNOWN;
-		token.value = unknown_value;
-		(*src)++;
-	}
-
-	return token; // Return the token variable
-}
-
-// Free memory for tokens that are dynamically allocated
+// Function to free memory used by tokens
 void free_token(Token token) {
-	if (token.type == TOKEN_IDENTIFIER || token.type == TOKEN_UNKNOWN) {
-		free((char*)token.value);
-	}
+    if (token.type == TOKEN_IDENTIFIER || token.type == TOKEN_INT || token.type == TOKEN_UNKNOWN) {
+        // Free the memory for tokens with dynamically allocated values
+        free((char*)token.value);
+    }
+}
+
+// Utility function to convert TokenType to a string representation (useful for debugging)
+const char* token_type_to_string(TokenType type) {
+    switch (type) {
+        case TOKEN_CLASS: return "TOKEN_CLASS";
+        case TOKEN_IDENTIFIER: return "TOKEN_IDENTIFIER";
+        case TOKEN_INT: return "TOKEN_INT";
+        case TOKEN_FLOAT: return "TOKEN_FLOAT";
+        case TOKEN_VOID: return "TOKEN_VOID";
+        case TOKEN_LBRACE: return "TOKEN_LBRACE";
+        case TOKEN_RBRACE: return "TOKEN_RBRACE";
+        case TOKEN_SEMICOLON: return "TOKEN_SEMICOLON";
+        case TOKEN_LPAREN: return "TOKEN_LPAREN";
+        case TOKEN_RPAREN: return "TOKEN_RPAREN";
+        case TOKEN_COMMA: return "TOKEN_COMMA";
+        case TOKEN_FOR: return "TOKEN_FOR";
+        case TOKEN_IF: return "TOKEN_IF";
+        case TOKEN_ELSE: return "TOKEN_ELSE";
+        case TOKEN_ASSIGN: return "TOKEN_ASSIGN";
+        case TOKEN_PLUS: return "TOKEN_PLUS";
+        case TOKEN_MINUS: return "TOKEN_MINUS";
+        case TOKEN_MULTIPLY: return "TOKEN_MULTIPLY";
+        case TOKEN_DIVIDE: return "TOKEN_DIVIDE";
+        case TOKEN_INCREMENT: return "TOKEN_INCREMENT";
+        case TOKEN_DECREMENT: return "TOKEN_DECREMENT";
+        case TOKEN_LESS: return "TOKEN_LESS";
+        case TOKEN_GREATER: return "TOKEN_GREATER";
+        case TOKEN_LESS_EQUAL: return "TOKEN_LESS_EQUAL";
+        case TOKEN_GREATER_EQUAL: return "TOKEN_GREATER_EQUAL";
+        case TOKEN_EQUAL: return "TOKEN_EQUAL";
+        case TOKEN_NOT_EQUAL: return "TOKEN_NOT_EQUAL";
+        case TOKEN_END: return "TOKEN_END";
+        case TOKEN_UNKNOWN: return "TOKEN_UNKNOWN";
+        default: return "UNKNOWN_TOKEN_TYPE";
+    }
 }

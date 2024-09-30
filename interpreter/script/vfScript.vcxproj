@@ -86,13 +86,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ast.h" />
+    <ClInclude Include="interpreter.h" />
     <ClInclude Include="lexer.h" />
-    <ClInclude Include="parse.h" />
+    <ClInclude Include="parser.h" />
+    <ClInclude Include="types.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ast.c" />
     <ClCompile Include="interpreter.c" />
     <ClCompile Include="lexer.c" />
-    <ClCompile Include="parse.c" />
+    <ClCompile Include="main.c" />
+    <ClCompile Include="parser.c" />
+    <ClCompile Include="utils.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

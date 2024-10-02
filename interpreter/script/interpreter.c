@@ -130,10 +130,19 @@ void interpret_program(ASTNode* program, Environment* env) {
 					count_methods(new_class->methods),
 					count_fields(new_class->fields));
 			}
+			
 			else {
 				// Interpret any other statement
 				interpret(current_node, env);
 			}
+		}
+	}
+	else if (program->type == AST_FUNCTION_DEF) {
+		for (int i = 0; i < program->body_count; i++) {
+			ASTNode* current_node = program->body[i];
+			// Store function definition in the environment
+			define_function(env, current_node->value, current_node, current_node->parameters, current_node->param_count);
+			printf("Function '%s' defined.\n", current_node->value);
 		}
 	}
 	else {

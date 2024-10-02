@@ -32,29 +32,31 @@ int main() {
 	// Define input script with object and native function usage
 	char input[] =
 		"function int main() { "
-		"  MyClass obj = new MyClass(); "
-		"  set_object_field(obj, \"x\", 10); "
-		"  int value = add(5, obj.x); "
-		"  print(value); "
+		"  int x = 5; "
 		"}";
 
 	// Step 1: Tokenization
 	Tokenizer* tokenizer = create_tokenizer(input);
-	if (!tokenizer) {
-		fprintf(stderr, "Error: Failed to create tokenizer\n");
-		return 1;
+	Token** tokens = (Token**)malloc(100 * sizeof(Token*));  // Allocate memory initially for 100 tokens
+	if (!tokens) {
+		fprintf(stderr, "Error: Memory allocation failed for tokens array\n");
+		exit(1);
 	}
-
-	Token** tokens = malloc(100 * sizeof(Token*));  // Dynamic token array allocation
 	int token_index = 0;
 
 	Token* token;
 	do {
 		token = get_next_token(tokenizer);
-		if (token_index >= 100) {
-			tokens = realloc(tokens, (token_index + 50) * sizeof(Token*));  // Resize if needed
-		}
 		tokens[token_index++] = token;
+
+		// If needed, resize the tokens array to accommodate more tokens
+		if (token_index >= 100) {
+			tokens = (Token**)realloc(tokens, (token_index + 50) * sizeof(Token*));
+			if (!tokens) {
+				fprintf(stderr, "Error: Memory allocation failed while resizing tokens array\n");
+				exit(1);
+			}
+		}
 	} while (token->type != TOKEN_EOF);
 
 	// Step 2: Parsing
@@ -86,14 +88,17 @@ int main() {
 	interpret_program(program, global_env);
 
 	// Cleanup
-	free_parser(parser);
 	free_environment(global_env);
+	free_parser(parser);
+
 	free_tokenizer(tokenizer);
 	for (int i = 0; i < token_index; i++) {
 		free_token(tokens[i]);
 	}
 	free(tokens);
-	free_ast_node(program);
 
+	//free_ast_node(program);
 	return 0;
 }
+
+

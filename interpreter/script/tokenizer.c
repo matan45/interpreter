@@ -8,6 +8,9 @@
 #define strdup _strdup
 #endif
 
+Stack stack;
+
+
 // Stack operations
 void init_stack(Stack * stack) {
     stack->top = -1;
@@ -43,6 +46,7 @@ Tokenizer* create_tokenizer(char* input) {
     tokenizer->input = input;
     tokenizer->current_pos = 0;
     tokenizer->input_length = (size_t)strlen(input);
+    init_stack(&stack);
     return tokenizer;
 }
 
@@ -161,100 +165,99 @@ char* read_number(Tokenizer* tokenizer) {
 
 // Function to get the next token from the tokenizer
 Token* get_next_token(Tokenizer* tokenizer) {
-    Stack stack;
-    init_stack(&stack);
 
-    while (tokenizer->current_pos < tokenizer->input_length) {
-        char current_char = tokenizer->input[tokenizer->current_pos];
+	while (tokenizer->current_pos < tokenizer->input_length) {
+		char current_char = tokenizer->input[tokenizer->current_pos];
 
-        // Skip whitespace
-        skip_whitespace(tokenizer);
+		// Skip whitespace
+		skip_whitespace(tokenizer);
 
-        // Skip comments
-        skip_comments(tokenizer);
+		// Skip comments
+		skip_comments(tokenizer);
 
-        // Update current character after skipping whitespace and comments
-        if (tokenizer->current_pos >= tokenizer->input_length) {
-            break;
-        }
-        current_char = tokenizer->input[tokenizer->current_pos];
+		// Update current character after skipping whitespace and comments
+		if (tokenizer->current_pos >= tokenizer->input_length) {
+			break;
+		}
+		current_char = tokenizer->input[tokenizer->current_pos];
 
-        // Handle numbers
-        if (isdigit(current_char)) {
-            char* number = read_number(tokenizer);
-            return create_token(TOKEN_NUMBER, number);
-        }
+		// Handle numbers
+		if (isdigit(current_char)) {
+			char* number = read_number(tokenizer);
+			return create_token(TOKEN_NUMBER, number);
+		}
 
-        // Handle identifiers, keywords, and boolean literals
-        if (isalpha(current_char) || current_char == '_') {
-            char* identifier = read_identifier(tokenizer);
+		// Handle identifiers, keywords, and boolean literals
+		if (isalpha(current_char) || current_char == '_') {
+			char* identifier = read_identifier(tokenizer);
 
-            // Check for keywords and boolean literals
-            if (strcmp(identifier, "if") == 0) return create_token(TOKEN_IF, identifier);
-            if (strcmp(identifier, "do") == 0) return create_token(TOKEN_DO, identifier);
-            if (strcmp(identifier, "else") == 0) return create_token(TOKEN_ELSE, identifier);
-            if (strcmp(identifier, "while") == 0) return create_token(TOKEN_WHILE, identifier);
-            if (strcmp(identifier, "for") == 0) return create_token(TOKEN_FOR, identifier);
-            if (strcmp(identifier, "return") == 0) return create_token(TOKEN_RETURN, identifier);
-            if (strcmp(identifier, "function") == 0) return create_token(TOKEN_FUNCTION, identifier);
-            if (strcmp(identifier, "class") == 0) return create_token(TOKEN_CLASS, identifier);
-            if (strcmp(identifier, "constructor") == 0) return create_token(TOKEN_CONSTRUCTOR, identifier);
-            if (strcmp(identifier, "destructor") == 0) return create_token(TOKEN_DESTRUCTOR, identifier);
-            if (strcmp(identifier, "public") == 0) return create_token(TOKEN_PUBLIC, identifier);
-            if (strcmp(identifier, "private") == 0) return create_token(TOKEN_PRIVATE, identifier);
-            if (strcmp(identifier, "final") == 0) return create_token(TOKEN_FINAL, identifier);
-            if (strcmp(identifier, "new") == 0) return create_token(TOKEN_NEW, identifier);
-            if (strcmp(identifier, "delete") == 0) return create_token(TOKEN_DELETE, identifier);
-            if (strcmp(identifier, "float") == 0) return create_token(TOKEN_FLOAT, identifier);
-            if (strcmp(identifier, "boolean") == 0) return create_token(TOKEN_BOOLEAN, identifier);
-            if (strcmp(identifier, "int") == 0) return create_token(TOKEN_INT, identifier);
-            if (strcmp(identifier, "string") == 0) return create_token(TOKEN_STRING, identifier);
-            if (strcmp(identifier, "void") == 0) return create_token(TOKEN_VOID, identifier);
-            if (strcmp(identifier, "true") == 0) return create_token(TOKEN_TRUE, identifier);
-            if (strcmp(identifier, "false") == 0) return create_token(TOKEN_FALSE, identifier);
+			// Check for keywords and boolean literals
+			if (strcmp(identifier, "if") == 0) return create_token(TOKEN_IF, identifier);
+			if (strcmp(identifier, "do") == 0) return create_token(TOKEN_DO, identifier);
+			if (strcmp(identifier, "else") == 0) return create_token(TOKEN_ELSE, identifier);
+			if (strcmp(identifier, "while") == 0) return create_token(TOKEN_WHILE, identifier);
+			if (strcmp(identifier, "for") == 0) return create_token(TOKEN_FOR, identifier);
+			if (strcmp(identifier, "return") == 0) return create_token(TOKEN_RETURN, identifier);
+			if (strcmp(identifier, "function") == 0) return create_token(TOKEN_FUNCTION, identifier);
+			if (strcmp(identifier, "class") == 0) return create_token(TOKEN_CLASS, identifier);
+			if (strcmp(identifier, "constructor") == 0) return create_token(TOKEN_CONSTRUCTOR, identifier);
+			if (strcmp(identifier, "destructor") == 0) return create_token(TOKEN_DESTRUCTOR, identifier);
+			if (strcmp(identifier, "public") == 0) return create_token(TOKEN_PUBLIC, identifier);
+			if (strcmp(identifier, "private") == 0) return create_token(TOKEN_PRIVATE, identifier);
+			if (strcmp(identifier, "final") == 0) return create_token(TOKEN_FINAL, identifier);
+			if (strcmp(identifier, "new") == 0) return create_token(TOKEN_NEW, identifier);
+			if (strcmp(identifier, "delete") == 0) return create_token(TOKEN_DELETE, identifier);
+			if (strcmp(identifier, "float") == 0) return create_token(TOKEN_FLOAT, identifier);
+			if (strcmp(identifier, "boolean") == 0) return create_token(TOKEN_BOOLEAN, identifier);
+			if (strcmp(identifier, "int") == 0) return create_token(TOKEN_INT, identifier);
+			if (strcmp(identifier, "string") == 0) return create_token(TOKEN_STRING, identifier);
+			if (strcmp(identifier, "void") == 0) return create_token(TOKEN_VOID, identifier);
+			if (strcmp(identifier, "true") == 0) return create_token(TOKEN_TRUE, identifier);
+			if (strcmp(identifier, "false") == 0) return create_token(TOKEN_FALSE, identifier);
 
-            // Otherwise, it's an identifier
-            return create_token(TOKEN_IDENTIFIER, identifier);
-        }
+			// Otherwise, it's an identifier
+			return create_token(TOKEN_IDENTIFIER, identifier);
+		}
 
-        // Handle logical operators
-        if (current_char == '&' && tokenizer->input[tokenizer->current_pos + 1] == '&') {
-            tokenizer->current_pos += 2;
-            return create_token(TOKEN_LOGICAL_AND, "&&");
-        }
-        if (current_char == '|' && tokenizer->input[tokenizer->current_pos + 1] == '|') {
-            tokenizer->current_pos += 2;
-            return create_token(TOKEN_LOGICAL_OR, "||");
-        }
+		// Handle logical operators
+		if (current_char == '&' && tokenizer->input[tokenizer->current_pos + 1] == '&') {
+			tokenizer->current_pos += 2;
+			return create_token(TOKEN_LOGICAL_AND, "&&");
+		}
+		if (current_char == '|' && tokenizer->input[tokenizer->current_pos + 1] == '|') {
+			tokenizer->current_pos += 2;
+			return create_token(TOKEN_LOGICAL_OR, "||");
+		}
 
-        // Handle parentheses and braces with stack operations
-        if (current_char == '(') {
-            push(&stack, '(');
-            tokenizer->current_pos++;
-            return create_token(TOKEN_LEFT_PAREN, "(");
-        }
-        if (current_char == ')') {
-            if (is_empty(&stack) || pop(&stack) != ')') {
-                fprintf(stderr, "Error: Unmatched closing parenthesis ')'\n");
-                exit(1);
-            }
-            tokenizer->current_pos++;
-            return create_token(TOKEN_RIGHT_PAREN, ")");
-        }
-        if (current_char == '{') {
-            push(&stack, '{');
-            tokenizer->current_pos++;
-            return create_token(TOKEN_LEFT_BRACE, "{");
-        }
-        if (current_char == '}') {
-            if (is_empty(&stack) || pop(&stack) != '}') {
-                fprintf(stderr, "Error: Unmatched closing brace '}'\n");
-                exit(1);
-            }
-            tokenizer->current_pos++;
-            return create_token(TOKEN_RIGHT_BRACE, "}");
-        }
+		// Handle parentheses and braces with stack operations
+		if (current_char == '(') {
+			push(&stack, '(');
+			tokenizer->current_pos++;
+			return create_token(TOKEN_LEFT_PAREN, "(");
+		}
+		if (current_char == ')') {
+			if (is_empty(&stack) || pop(&stack) != '(') {
+				fprintf(stderr, "Error: Unmatched closing parenthesis ')'\n");
+				exit(1);
+			}
+			tokenizer->current_pos++;
+			return create_token(TOKEN_RIGHT_PAREN, ")");
+		}
+		if (current_char == '{') {
+			push(&stack, '{');
+			tokenizer->current_pos++;
+			return create_token(TOKEN_LEFT_BRACE, "{");
+		}
+		if (current_char == '}') {
+			if (is_empty(&stack) || pop(&stack) != '{') {
+				fprintf(stderr, "Error: Unmatched closing brace '}'\n");
+				exit(1);
+			}
+			tokenizer->current_pos++;
+			return create_token(TOKEN_RIGHT_BRACE, "}");
+		}
 
+		// Handle increment and decrement operators (++ and --)
 		if (current_char == '+' && tokenizer->input[tokenizer->current_pos + 1] == '+') {
 			tokenizer->current_pos += 2;
 			return create_token(TOKEN_INCREMENT, "++");
@@ -270,23 +273,25 @@ Token* get_next_token(Tokenizer* tokenizer) {
 			return create_token(TOKEN_STRING, string);
 		}
 
-        // Handle single-character tokens
-        tokenizer->current_pos++;
-        switch (current_char) {
-        case '+': return create_token(TOKEN_PLUS, "+");
-        case '-': return create_token(TOKEN_MINUS, "-");
-        case '*': return create_token(TOKEN_MULTIPLY, "*");
-        case '/': return create_token(TOKEN_DIVIDE, "/");
-        case '=': return create_token(TOKEN_ASSIGN, "=");
-        case ',': return create_token(TOKEN_COMMA, ",");
-        case ';': return create_token(TOKEN_SEMICOLON, ";");
-        case '<': return create_token(TOKEN_LESS_THAN, "<");
-        case '>': return create_token(TOKEN_GREATER_THAN, ">");
-        case '!': return create_token(TOKEN_LOGICAL_NOT, "!");
-        default:
-            fprintf(stderr, "Error: Unrecognized character '%c'\n", current_char);
-            exit(1);
-        }
-    }
-    return create_token(TOKEN_EOF, "");
+		// Handle single-character tokens
+		tokenizer->current_pos++;
+		switch (current_char) {
+		case '+': return create_token(TOKEN_PLUS, "+");
+		case '-': return create_token(TOKEN_MINUS, "-");
+		case '*': return create_token(TOKEN_MULTIPLY, "*");
+		case '/': return create_token(TOKEN_DIVIDE, "/");
+		case '=': return create_token(TOKEN_ASSIGN, "=");
+		case ',': return create_token(TOKEN_COMMA, ",");
+		case ';': return create_token(TOKEN_SEMICOLON, ";");
+		case '<': return create_token(TOKEN_LESS_THAN, "<");
+		case '>': return create_token(TOKEN_GREATER_THAN, ">");
+		case '!': return create_token(TOKEN_LOGICAL_NOT, "!");
+		case '.': return create_token(TOKEN_DOT, ".");
+		default:
+			fprintf(stderr, "Error: Unrecognized character '%c'\n", current_char);
+			exit(1);
+		}
+	}
+
+	return create_token(TOKEN_EOF, "");
 }

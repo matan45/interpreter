@@ -1,6 +1,7 @@
 #include "ast.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>  // Required for fprintf and stderr
 
 #ifdef _MSC_VER
 #define strdup _strdup
@@ -62,57 +63,223 @@ ASTNode* create_variable_node(const char* name) {
 	return node;
 }
 
+// Create a for loop AST node
+ASTNode* create_for_node(ASTNode* initialization, ASTNode* condition, ASTNode* iteration, ASTNode** body, int body_count) {
+	// Allocate memory for the new AST node
+	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for for-loop AST node\n");
+		exit(1);
+	}
+
+	// Set the type of the node to represent a 'for' loop
+	node->type = AST_FOR;
+
+	// Assign the initialization, condition, and iteration parts of the for loop
+	node->left = initialization;    // Initialization part of the for loop (e.g., 'int i = 0')
+	node->right = condition;        // Condition part of the for loop (e.g., 'i < 10')
+
+	// Allocate memory for the body of the for loop, which includes the iteration statement and loop body
+	node->body = (ASTNode**)malloc((body_count + 1) * sizeof(ASTNode*));
+	if (!node->body) {
+		fprintf(stderr, "Error: Memory allocation failed for for-loop body nodes\n");
+		free(node);  // Free previously allocated memory to avoid memory leak
+		exit(1);
+	}
+
+	// Assign the iteration statement to the first element of the body array
+	node->body[0] = iteration;  // Iteration part of the for loop (e.g., 'i++')
+
+	// Copy the rest of the loop body to the body array
+	for (int i = 0; i < body_count; i++) {
+		node->body[i + 1] = body[i];  // Copy each statement in the body of the loop
+	}
+
+	// Set the body count to represent the number of elements in the body array
+	node->body_count = body_count + 1;  // Includes the iteration and the body statements
+
+	return node;
+}
+
+
+
+// Create a while AST node
+ASTNode* create_while_node(ASTNode* condition, ASTNode** body, int body_count) {
+	// Allocate memory for the new AST node
+	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for while AST node\n");
+		exit(1);
+	}
+
+	// Set the type of the node to represent a 'while' loop
+	node->type = AST_WHILE;
+
+	// Assign the condition of the while loop
+	node->left = condition;  // The condition to determine if the loop should continue
+
+	// Allocate memory for the body of the while loop
+	node->body = (ASTNode**)malloc(body_count * sizeof(ASTNode*));
+	if (!node->body) {
+		fprintf(stderr, "Error: Memory allocation failed for while body nodes\n");
+		free(node);  // Free previously allocated memory to avoid memory leak
+		exit(1);
+	}
+
+	// Copy body pointers to the node's body array
+	node->body = body;
+
+
+	// Set the number of statements in the body
+	node->body_count = body_count;
+
+	return node;
+}
+
+
+
 // Create a do-while node
 ASTNode* create_do_while_node(ASTNode* condition, ASTNode** body, int body_count) {
+	// Allocate memory for the new AST node
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for do-while AST node\n");
+		exit(1);
+	}
+
+	// Set the type of the node to represent a 'do-while' loop
 	node->type = AST_DO_WHILE;
-	node->left = condition;
-	node->body = body;
-	node->body_count = body_count;
+
+	// Assign the condition and the body of the do-while loop
+	node->left = condition;  // Condition of the do-while loop
+
+	// Allocate memory for the body of the loop
+	node->body = (ASTNode**)malloc(body_count * sizeof(ASTNode*));
+	if (!node->body) {
+		fprintf(stderr, "Error: Memory allocation failed for do-while body nodes\n");
+		free(node);
+		exit(1);
+	}
+
+	// Copy the statements into the body's array
+	for (int i = 0; i < body_count; i++) {
+		node->body[i] = body[i];
+	}
+	node->body_count = body_count;  // Set the count of the body statements
+
 	return node;
 }
 
 // Create an assignment node
-ASTNode* create_assignment_node(const char* name, ASTNode* right) {
+ASTNode* create_assignment_node(const char* variable_name, ASTNode* value) {
+	// Allocate memory for the new AST node
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for assignment AST node\n");
+		exit(1);
+	}
+
+	// Set the type of the node to represent an assignment
 	node->type = AST_ASSIGNMENT;
-	node->value = strdup(name);
-	node->right = right;
+
+	// Assign the variable name and the value expression to the AST node
+	node->value = strdup(variable_name); // The variable name being assigned to (e.g., "x")
+	if (!node->value) {
+		fprintf(stderr, "Error: Memory allocation failed for variable name in assignment node\n");
+		free(node); // Free the node to prevent memory leaks
+		exit(1);
+	}
+
+	node->left = value; // The value to be assigned (could be an expression or a literal)
+
+	node->body_count = 0;
+	node->param_count = 0;
+	node->is_final = 0;
+	node->access_modifier = ACCESS_PUBLIC; // Default access for assignment nodes
+	node->argument_count = 0;
+
 	return node;
 }
 
-// Create an if node
-ASTNode* create_if_node(ASTNode* condition, ASTNode** body, int body_count) {
+// Create an if statement AST node
+
+ASTNode* create_if_node(ASTNode* condition, ASTNode** true_branch, int true_branch_count, ASTNode* false_branch) {
+	// Allocate memory for the new AST node
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for if AST node\n");
+		exit(1);
+	}
+
+	// Set the type to represent an if statement
 	node->type = AST_IF;
-	node->left = condition;
-	node->body = body;
-	node->body_count = body_count;
+
+	// Assign the condition of the if statement
+	node->left = condition;  // Condition expression for 'if (condition)'
+
+	// Assign the true branch
+	if (true_branch_count > 0) {
+		node->body = (ASTNode**)malloc(true_branch_count * sizeof(ASTNode*));
+		if (!node->body) {
+			fprintf(stderr, "Error: Memory allocation failed for true branch of if statement\n");
+			free(node);
+			exit(1);
+		}
+		for (int i = 0; i < true_branch_count; i++) {
+			node->body[i] = true_branch[i];
+		}
+	}
+	else {
+		node->body = NULL;
+	}
+	node->body_count = true_branch_count;
+
+	// Assign the false branch (if it exists)
+	node->right = false_branch;
+
 	return node;
 }
 
-// Create a while node
-ASTNode* create_while_node(ASTNode* condition, ASTNode** body, int body_count) {
-	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-	node->type = AST_WHILE;
-	node->left = condition;
-	node->body = body;
-	node->body_count = body_count;
-	return node;
-}
+
+
+
 
 // Create a function node
 ASTNode* create_function_node(const char* name, char** parameters, char** parameter_types, int param_count, ASTNode** body, int body_count, AccessModifier access, const char* return_type) {
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for function ASTNode\n");
+		exit(1);
+	}
+
+	// Set initial values
 	node->type = AST_FUNCTION_DEF;
 	node->value = strdup(name);
-	node->parameters = parameters;
-	node->parameter_types = parameter_types;
-	node->param_count = param_count;
-	node->body = body;
-	node->body_count = body_count;
 	node->access_modifier = access;
 	node->return_type = strdup(return_type);
+	node->body = body;
+	node->body_count = body_count;
+	node->parameters = NULL;         // Initialize to NULL
+	node->parameter_types = NULL;    // Initialize to NULL
+
+	// Allocate memory for parameters if param_count > 0
+	if (param_count > 0) {
+		node->parameters = (char**)malloc(param_count * sizeof(char*));
+		node->parameter_types = (char**)malloc(param_count * sizeof(char*));
+
+		if (!node->parameters || !node->parameter_types) {
+			fprintf(stderr, "Error: Memory allocation failed for parameters or parameter types\n");
+			exit(1);
+		}
+
+		for (int i = 0; i < param_count; i++) {
+			node->parameters[i] = strdup(parameters[i]);
+			node->parameter_types[i] = strdup(parameter_types[i]);
+		}
+	}
+
+	node->param_count = param_count;
+
 	return node;
 }
 
@@ -203,35 +370,87 @@ ASTNode* create_object_destruct_node(const char* object_name) {
 }
 
 // Create a block node (a sequence of statements)
-ASTNode* create_block_node(ASTNode** body, int body_count) {
+ASTNode* create_block_node(ASTNode** statements, int statement_count) {
+	// Allocate memory for the new AST node
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for block AST node\n");
+		exit(1);
+	}
+
+	// Set the type of the node to represent a block
 	node->type = AST_BLOCK;
-	node->body = body;
-	node->body_count = body_count;
-	node->value = NULL;
-	node->left = NULL;
-	node->right = NULL;
+
+	// Assign the list of statements and the count of statements to the node
+	node->body = statements;         // The array of statements in the block
+	node->body_count = statement_count;  // Number of statements in the block
+
+	// Initialize other fields that are not relevant for a block node
+	node->param_count = 0;
+	node->is_final = 0;
+	node->access_modifier = ACCESS_PUBLIC; // Default for blocks
+	node->argument_count = 0;
+
 	return node;
 }
 
+// Create a member access node, e.g., object.field
+ASTNode* create_member_access_node(ASTNode* object, const char* member_name) {
+	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	node->type = AST_MEMBER_ACCESS;
+	node->left = object; // The object (e.g., 'object' in 'object.field')
+	node->value = strdup(member_name); // The member name being accessed (e.g., 'field')
+	node->right = NULL; // No right child needed
+	node->body = NULL;
+	node->body_count = 0;
+	return node;
+}
+
+ASTNode* create_variable_declaration_node(const char* type, const char* name, ASTNode* value) {
+	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+	if (!node) {
+		fprintf(stderr, "Error: Memory allocation failed for variable declaration AST node\n");
+		exit(1);
+	}
+
+	node->type = AST_VARIABLE_DECLARATION;
+	node->value = strdup(name); // Variable name
+	node->return_type = strdup(type); // Variable type (e.g., "int", "float", "boolean")
+	node->left = value; // The value being assigned (if any)
+
+	// Set unused fields to NULL or 0
+	node->body_count = 0;
+	node->param_count = 0;
+	node->is_final = 0;
+	node->access_modifier = ACCESS_PUBLIC;
+	node->argument_count = 0;
+
+	return node;
+}
+
+
 // Free an AST node and all its children
 void free_ast_node(ASTNode* node) {
-	if (!node) return;
-
 	// Free the value if it exists
-	if (node->value) free(node->value);
+	if (node->value) {
+		free(node->value);
+	}
 
 	// Free parameters and parameter types if they exist
 	if (node->parameters) {
 		for (int i = 0; i < node->param_count; i++) {
-			if (node->parameters[i]) free(node->parameters[i]);
+			if (node->parameters[i]) {
+				free(node->parameters[i]);
+			}
 		}
 		free(node->parameters);
 	}
 
 	if (node->parameter_types) {
 		for (int i = 0; i < node->param_count; i++) {
-			if (node->parameter_types[i]) free(node->parameter_types[i]);
+			if (node->parameter_types[i]) {
+				free(node->parameter_types[i]);
+			}
 		}
 		free(node->parameter_types);
 	}
@@ -250,6 +469,13 @@ void free_ast_node(ASTNode* node) {
 			free_ast_node(node->body[i]);
 		}
 		free(node->body);
+	}
+
+	if (node->left) {
+		free_ast_node(node->left);
+	}
+	if (node->right) {
+		free_ast_node(node->right);
 	}
 
 	// Free the node itself

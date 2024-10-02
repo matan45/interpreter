@@ -21,10 +21,15 @@ ASTNode* parse_statement(Parser* parser);
 ASTNode* parse_expression(Parser* parser);
 ASTNode* parse_term(Parser* parser);
 ASTNode* parse_block(Parser* parser);
-// Function prototypes for missing functions (declarations)
+ASTNode* parse_factor(Parser* parser);
 ASTNode* parse_if_statement(Parser* parser);
 ASTNode* parse_while_statement(Parser* parser);
 ASTNode* parse_do_while_statement(Parser* parser);
+ASTNode* parse_for_statement(Parser* parser);
+ASTNode* parse_function_definition(Parser* parser);
+ASTNode* parse_variable_declaration(Parser* parser);
+
+
 
 // Utility functions
 Token* current_token(Parser* parser);

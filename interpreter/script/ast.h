@@ -10,6 +10,7 @@ typedef enum {
 	AST_ASSIGNMENT,       // Represents variable assignment
 	AST_VARIABLE,         // Represents a variable reference
 	AST_IF,               // Represents an if statement
+	AST_FOR,            // Represents a for loop
 	AST_WHILE,            // Represents a while loop
 	AST_DO_WHILE,         // Represents a do-while loop
 	AST_FUNCTION_DEF,     // Represents a function definition
@@ -24,6 +25,8 @@ typedef enum {
 	AST_LOGICAL_AND,      // Represents logical AND (&&)
 	AST_LOGICAL_OR,       // Represents logical OR (||)
 	AST_UNARY_OP,
+	AST_MEMBER_ACCESS,
+	AST_VARIABLE_DECLARATION,
 	AST_BLOCK             // Represents a block of statements
 } ASTNodeType;
 
@@ -58,10 +61,11 @@ ASTNode* create_boolean_node(int value);
 ASTNode* create_string_node(const char* value);
 ASTNode* create_binary_op_node(ASTNodeType type, ASTNode* left, ASTNode* right);
 ASTNode* create_variable_node(const char* name);
+ASTNode* create_assignment_node(const char* variable_name, ASTNode* value);
+ASTNode* create_if_node(ASTNode* condition, ASTNode** true_branch, int true_branch_count, ASTNode* false_branch);
 ASTNode* create_do_while_node(ASTNode* condition, ASTNode** body, int body_count);
-ASTNode* create_assignment_node(const char* name, ASTNode* right);
-ASTNode* create_if_node(ASTNode* condition, ASTNode** body, int body_count);
 ASTNode* create_while_node(ASTNode* condition, ASTNode** body, int body_count);
+ASTNode* create_for_node(ASTNode* initialization, ASTNode* condition, ASTNode* iteration, ASTNode** body, int body_count);
 ASTNode* create_function_node(const char* name, char** parameters, char** parameter_types, int param_count, ASTNode** body, int body_count, AccessModifier access, const char* return_type);
 ASTNode* create_function_call_node(const char* name, ASTNode** arguments, int argument_count);
 ASTNode* create_class_node(const char* name, ASTNode** body, int body_count, AccessModifier access);
@@ -72,7 +76,9 @@ ASTNode* create_data_member_def_node(const char* name, const char* type, AccessM
 ASTNode* create_method_call_node(const char* object_name, const char* method_name, ASTNode** arguments, int argument_count);
 ASTNode* create_unary_op_node(ASTNodeType type, ASTNode* operand);
 ASTNode* create_object_destruct_node(const char* object_name);
-ASTNode* create_block_node(ASTNode** body, int body_count); // New function for AST_BLOCK
+ASTNode* create_block_node(ASTNode** statements, int statement_count);
+ASTNode* create_member_access_node(ASTNode* object, const char* member_name);
+ASTNode* create_variable_declaration_node(const char* type, const char* name, ASTNode* value);
 
 
 void free_ast_node(ASTNode* node);

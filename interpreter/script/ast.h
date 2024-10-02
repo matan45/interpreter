@@ -67,7 +67,7 @@ ASTNode* create_do_while_node(ASTNode* condition, ASTNode** body, int body_count
 ASTNode* create_while_node(ASTNode* condition, ASTNode** body, int body_count);
 ASTNode* create_for_node(ASTNode* initialization, ASTNode* condition, ASTNode* iteration, ASTNode** body, int body_count);
 ASTNode* create_function_node(const char* name, char** parameters, char** parameter_types, int param_count, ASTNode** body, int body_count, AccessModifier access, const char* return_type);
-ASTNode* create_function_call_node(const char* name, ASTNode** arguments, int argument_count);
+ASTNode* create_function_call_node(const char* name, char** parameters, char** parameter_types, int argument_count);
 ASTNode* create_class_node(const char* name, ASTNode** body, int body_count, AccessModifier access);
 ASTNode* create_object_construct_node(const char* class_name, ASTNode** arguments, int argument_count);
 ASTNode* create_logical_op_node(ASTNodeType type, ASTNode* left, ASTNode* right);

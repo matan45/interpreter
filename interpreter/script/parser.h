@@ -28,7 +28,7 @@ ASTNode* parse_do_while_statement(Parser* parser);
 ASTNode* parse_for_statement(Parser* parser);
 ASTNode* parse_function_definition(Parser* parser);
 ASTNode* parse_variable_declaration(Parser* parser);
-
+ASTNode* parse_class(Parser* parser);
 
 
 // Utility functions

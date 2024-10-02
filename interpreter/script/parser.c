@@ -70,6 +70,156 @@ ASTNode* parse_variable_declaration(Parser* parser) {
 	return create_assignment_node(var_name_token->value, value_node);
 }
 
+ASTNode* parse_class(Parser* parser) {
+	// Expect and consume the 'class' keyword (already matched before calling this function)
+	Token* class_name_token = current_token(parser);
+	if (class_name_token->type != TOKEN_IDENTIFIER) {
+		fprintf(stderr, "Error: Expected class name after 'class'\n");
+		exit(1);
+	}
+
+	// Store class name
+	char* class_name = strdup(class_name_token->value);
+	next_token(parser); // Move past the class name
+
+	// Expect the left brace to start the class body
+	expect(parser, TOKEN_LEFT_BRACE);
+
+	// Array to hold class members (fields, methods, etc.)
+	int capacity = 10;
+	ASTNode** members = (ASTNode**)malloc(capacity * sizeof(ASTNode*));
+	int member_count = 0;
+
+	// Parse class members until we reach the right brace
+	while (current_token(parser)->type != TOKEN_RIGHT_BRACE) {
+		// Resize the members array if necessary
+		if (member_count >= capacity) {
+			capacity += 10;
+			members = realloc(members, capacity * sizeof(ASTNode*));
+			if (!members) {
+				fprintf(stderr, "Error: Memory allocation failed while resizing class members array\n");
+				exit(1);
+			}
+		}
+
+		// Access modifier (optional)
+		AccessModifier access = ACCESS_PUBLIC; // Default to public
+		if (match(parser, TOKEN_PUBLIC)) {
+			access = ACCESS_PUBLIC;
+		}
+		else if (match(parser, TOKEN_PRIVATE)) {
+			access = ACCESS_PRIVATE;
+		}
+
+		// Check what kind of member we are dealing with
+		Token* token = current_token(parser);
+		ASTNode* member = NULL;
+
+		if (token->type == TOKEN_FUNCTION) {
+			// Function definition (could be a method or constructor)
+			next_token(parser); // Consume 'function'
+			member = parse_function_definition(parser);
+			member->access_modifier = access;
+		}
+		else if (token->type == TOKEN_CONSTRUCTOR) {
+			// Constructor definition
+			next_token(parser); // Consume 'constructor'
+			member = parse_function_definition(parser);
+			member->type = AST_CONSTRUCTOR_CALL; // Mark it as a constructor
+			member->access_modifier = access;
+		}
+		else if (token->type == TOKEN_DESTRUCTOR) {
+			// Destructor definition
+			next_token(parser); // Consume 'destructor'
+			member = parse_function_definition(parser);
+			member->type = AST_OBJECT_DESTRUCT; // Mark it as a destructor
+			member->access_modifier = access;
+		}
+		else if (token->type == TOKEN_IDENTIFIER) {
+			// Variable or function (data member or method)
+			Token* type_token = token;
+			next_token(parser); // Consume type
+
+			Token* name_token = current_token(parser);
+			if (name_token->type != TOKEN_IDENTIFIER) {
+				fprintf(stderr, "Error: Expected identifier after type\n");
+				exit(1);
+			}
+			next_token(parser); // Consume identifier
+
+			if (current_token(parser)->type == TOKEN_LEFT_PAREN) {
+				// This is a method (has parentheses)
+				next_token(parser); // Consume '('
+				// Parse parameters
+				char** parameters = NULL;
+				char** parameter_types = NULL;
+				int param_count = 0;
+
+				if (current_token(parser)->type != TOKEN_RIGHT_PAREN) {
+					parameters = (char**)malloc(10 * sizeof(char*));
+					parameter_types = (char**)malloc(10 * sizeof(char*));
+					int param_capacity = 10;
+
+					do {
+						// Resize parameters array if necessary
+						if (param_count >= param_capacity) {
+							param_capacity += 10;
+							parameters = realloc(parameters, param_capacity * sizeof(char*));
+							parameter_types = realloc(parameter_types, param_capacity * sizeof(char*));
+						}
+
+						// Parse parameter type and name
+						Token* param_type = current_token(parser);
+						expect(parser, TOKEN_IDENTIFIER);
+						Token* param_name = current_token(parser);
+						expect(parser, TOKEN_IDENTIFIER);
+
+						parameter_types[param_count] = strdup(param_type->value);
+						parameters[param_count] = strdup(param_name->value);
+						param_count++;
+
+					} while (match(parser, TOKEN_COMMA));
+				}
+				expect(parser, TOKEN_RIGHT_PAREN);
+
+				// Parse function body
+				ASTNode* body = parse_block(parser);
+
+				// Create the method node
+				member = create_function_node(name_token->value, parameters, parameter_types, param_count, body->body, body->body_count, access, type_token->value);
+			}
+			else {
+				// This is a data member (variable)
+				ASTNode* value_node = NULL;
+				if (match(parser, TOKEN_ASSIGN)) {
+					// Parse the assigned value
+					value_node = parse_expression(parser);
+				}
+
+				// Expect semicolon
+				expect(parser, TOKEN_SEMICOLON);
+
+				// Create data member node
+				member = create_data_member_def_node(name_token->value, type_token->value, access, 0);
+			}
+		}
+		else {
+			fprintf(stderr, "Error: Unexpected token in class body\n");
+			exit(1);
+		}
+
+		// Add the member to the members array
+		members[member_count++] = member;
+	}
+
+	// Expect and consume the right brace to end the class body
+	expect(parser, TOKEN_RIGHT_BRACE);
+
+	// Create the class node
+	return create_class_node(class_name, members, member_count, ACCESS_PUBLIC);
+}
+
+
 
 // Get the current token
 Token* current_token(Parser* parser) {
@@ -133,6 +283,9 @@ ASTNode* parse_statement(Parser* parser) {
 	else if (match(parser, TOKEN_DO)) {
 		return parse_do_while_statement(parser);
 	}
+	else if (match(parser, TOKEN_CLASS)) {
+		return parse_class(parser);
+	}
 	else if (match(parser, TOKEN_RETURN)) {
 		ASTNode* return_value = parse_expression(parser);
 		expect(parser, TOKEN_SEMICOLON);
@@ -149,12 +302,13 @@ ASTNode* parse_statement(Parser* parser) {
 	}
 	// Handle variable declarations for int, float, boolean
 	else if (current_token(parser)->type == TOKEN_INT || current_token(parser)->type == TOKEN_FLOAT || current_token(parser)->type == TOKEN_BOOLEAN) {
+		//TODO also handle string
 		Token* type_token = current_token(parser); // Store the type token (e.g., 'int', 'float', 'boolean')
 		next_token(parser);
 
 		expect(parser, TOKEN_IDENTIFIER); // Parse the variable name
 		Token* var_name_token = current_token(parser);
-		
+
 
 		ASTNode* value_node = NULL;
 
@@ -168,7 +322,7 @@ ASTNode* parse_statement(Parser* parser) {
 		// Create and return the variable declaration or assignment node
 		return create_variable_declaration_node(type_token->value, var_name_token->value, value_node);
 	}
-	else if (match(parser, TOKEN_IDENTIFIER)) {
+	/*else if (match(parser, TOKEN_IDENTIFIER)) {
 		// Possible assignment or function call
 		Token* identifier_token = current_token(parser);  // Store the current identifier
 		next_token(parser); // Consume the identifier
@@ -215,7 +369,7 @@ ASTNode* parse_statement(Parser* parser) {
 			fprintf(stderr, "Error: Unexpected token after identifier '%s'\n", identifier_token->value);
 			exit(1);
 		}
-	}
+	}*/
 	else {
 		ASTNode* expr = parse_expression(parser);
 		expect(parser, TOKEN_SEMICOLON);
@@ -239,6 +393,21 @@ ASTNode* parse_function_definition(Parser* parser) {
 
 	// Parse function parameters
 	match(parser, TOKEN_LEFT_PAREN);
+
+	Token* token = current_token(parser);
+	if (token->type == TOKEN_RIGHT_PAREN) {
+		//fouction withot prams
+		if (match(parser, TOKEN_SEMICOLON)) {
+			//handle fouction call
+			return create_function_call_node(function_name_token->value, NULL, NULL, 0);
+		}
+
+		next_token(parser);
+		ASTNode* body = parse_block(parser);
+		return create_function_node(function_name_token->value, NULL, NULL, 0, body->body, body->body_count, ACCESS_PUBLIC, return_type_token->value);
+
+
+	}
 
 	char** parameters = (char**)malloc(10 * sizeof(char*));
 	char** parameter_types = (char**)malloc(10 * sizeof(char*));
@@ -268,6 +437,11 @@ ASTNode* parse_function_definition(Parser* parser) {
 		if (!match(parser, TOKEN_COMMA)) {
 			break;
 		}
+	}
+
+	if (match(parser, TOKEN_SEMICOLON)) {
+		//handle fouction call with pramras
+		return create_function_call_node(function_name_token->value, parameters, parameter_types, param_count);
 	}
 
 	// Parse the function body
@@ -476,7 +650,7 @@ ASTNode* parse_block(Parser* parser) {
 
 	Token* token = current_token(parser);
 	// Parse until we encounter the closing brace
-	while (token  && token->type != TOKEN_RIGHT_BRACE) {
+	while (token && token->type != TOKEN_RIGHT_BRACE) {
 		// Resize the array if needed
 		if (count <= capacity) {
 			capacity += 10;  // Increase capacity as needed
@@ -614,7 +788,7 @@ ASTNode* parse_term(Parser* parser) {
 		return create_boolean_node(0); // false as 0
 	}
 
-	// Handle identifiers (variables, function calls, member access)
+	/*// Handle identifiers (variables, function calls, member access)
 	else if (token->type == TOKEN_IDENTIFIER) {
 		// Parse the initial identifier as a variable or function name
 		ASTNode* node = create_variable_node(token->value);
@@ -681,7 +855,7 @@ ASTNode* parse_term(Parser* parser) {
 		ASTNode* node = parse_expression(parser);
 		expect(parser, TOKEN_RIGHT_PAREN); // Expect and consume ')'
 		return node;
-	}
+	}*/
 
 	// If we reach here, unexpected token
 	fprintf(stderr, "Error: Unexpected token type %d and %s in term\n", token->type, token->value);

@@ -284,11 +284,26 @@ ASTNode* create_function_node(const char* name, char** parameters, char** parame
 }
 
 // Create a function call node
-ASTNode* create_function_call_node(const char* name, ASTNode** arguments, int argument_count) {
+ASTNode* create_function_call_node(const char* name, char** parameters, char** parameter_types, int argument_count) {
 	ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
 	node->type = AST_FUNCTION_CALL;
 	node->value = strdup(name);
-	node->arguments = arguments;
+	// Allocate memory for parameters if param_count > 0
+	if (argument_count > 0) {
+		node->parameters = (char**)malloc(argument_count * sizeof(char*));
+		node->parameter_types = (char**)malloc(argument_count * sizeof(char*));
+
+		if (!node->parameters || !node->parameter_types) {
+			fprintf(stderr, "Error: Memory allocation failed for parameters or parameter types\n");
+			exit(1);
+		}
+
+		for (int i = 0; i < argument_count; i++) {
+			node->parameters[i] = strdup(parameters[i]);
+			node->parameter_types[i] = strdup(parameter_types[i]);
+		}
+	}
+
 	node->argument_count = argument_count;
 	return node;
 }

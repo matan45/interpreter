@@ -1,5 +1,16 @@
 #include "Scanner.hpp"
 
+
+std::vector<Token> Scanner::scanTokens()
+{
+	while (!isAtEnd()) {
+		start = current;
+		scanToken();
+	}
+	tokens.emplace_back(TokenType::EOF_TYPE, "", "", line);
+	return tokens;
+}
+
 std::unordered_map<std::string, TokenType> Scanner::createKeywordMap()
 {
 	return {

@@ -11,11 +11,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Environment.hpp" />
+    <ClInclude Include="RuntimeError.hpp" />
     <ClInclude Include="Scanner.hpp" />
     <ClInclude Include="Token.hpp" />
     <ClInclude Include="TokenType.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Environment.cpp" />
     <ClCompile Include="Scanner.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>

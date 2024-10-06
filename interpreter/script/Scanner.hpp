@@ -22,14 +22,7 @@ public:
 		keywords = createKeywordMap();
 	}
 
-	std::vector<Token> scanTokens() {
-		while (!isAtEnd()) {
-			start = current;
-			scanToken();
-		}
-		tokens.emplace_back(TokenType::EOF_TYPE, "", "", line);
-		return tokens;
-	}
+	std::vector<Token> scanTokens();
 private:
 
 	std::unordered_map<std::string, TokenType> createKeywordMap();

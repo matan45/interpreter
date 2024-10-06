@@ -16,6 +16,7 @@ public:
 	Token(TokenType type, const std::string& lexeme, std::variant<std::monostate, std::string, double> literal, int line)
 		: type(type), lexeme(lexeme), literal(literal), line(line) {}
 
+	Token(const std::string& lexeme, int line) : lexeme(lexeme), line(line) {}
 	std::string toString() const {
 		return tokenTypeToString(type) + " " + lexeme + " " + literalToString();
 	}

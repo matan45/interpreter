@@ -1,6 +1,6 @@
 #include "Environment.hpp"
 
-std::variant<std::monostate, double, std::string> Environment::get(const Token& name)
+Value Environment::get(const Token& name)
 {
 	auto it = values.find(name.lexeme);
 	if (it != values.end()) {
@@ -14,7 +14,7 @@ std::variant<std::monostate, double, std::string> Environment::get(const Token& 
 	throw RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
 }
 
-void Environment::assign(const Token& name, const std::variant<std::monostate, double, std::string>& value)
+void Environment::assign(const Token& name, const Value& value)
 {
 	auto it = values.find(name.lexeme);
 	if (it != values.end()) {
@@ -30,7 +30,7 @@ void Environment::assign(const Token& name, const std::variant<std::monostate, d
 	throw RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
 }
 
-void Environment::define(const std::string& name, const std::variant<std::monostate, double, std::string>& value)
+void Environment::define(const std::string& name, const Value& value)
 {
 	values[name] = value;
 }
@@ -49,18 +49,17 @@ std::shared_ptr<Environment> Environment::ancestor(int distance)
 	return environment;
 }
 
-std::variant<std::monostate, double, std::string> Environment::getAt(int distance, const std::string& name)
+Value Environment::getAt(int distance, const std::string& name)
 {
 	return ancestor(distance)->values[name];
 }
 
-void Environment::assignAt(int distance, const Token& name, const std::variant<std::monostate, double, std::string>& value)
+void Environment::assignAt(int distance, const Token& name, const Value& value)
 {
 	ancestor(distance)->values[name.lexeme] = value;
 }
 
-std::string Environment::toString() const
-{
+std::string Environment::toString() const {
 	std::string result = "{";
 	for (const auto& pair : values) {
 		result += pair.first + ": ";
@@ -75,6 +74,10 @@ std::string Environment::toString() const
 			else if constexpr (std::is_same_v<T, std::string>) {
 				return arg;
 			}
+			else if constexpr (std::is_same_v<T, std::function<Value(std::vector<Value>)>>) {
+				return "<lambda>";  // You could add more detailed information if needed
+			}
+			return "unknown";
 			}, pair.second);
 		result += ", ";
 	}
@@ -86,4 +89,5 @@ std::string Environment::toString() const
 
 	return result;
 }
+
 

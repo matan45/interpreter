@@ -8,11 +8,12 @@ workspace "Interpreter"
 -- Project 1: Editor
 project "vfScript"
    kind "ConsoleApp"
-   language "C"
+   language "C++"
+   cppdialect "C++20"
    location "Interpreter/script"
    targetdir "bin/%{prj.name}/%{cfg.buildcfg}/%{cfg.platform}"
 
-   files { "Interpreter/script/**.h", "Interpreter/script/**.c" }
+   files { "Interpreter/script/**.hpp", "Interpreter/script/**.cpp" }
 
    defines { "_CRT_SECURE_NO_WARNINGS" }
 

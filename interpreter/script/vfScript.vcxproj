@@ -10,6 +10,15 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Scanner.hpp" />
+    <ClInclude Include="Token.hpp" />
+    <ClInclude Include="TokenType.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Scanner.cpp" />
+    <ClCompile Include="Source.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{76959BD6-6262-F6E1-8B7B-E48977A72B70}</ProjectGuid>
     <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
@@ -60,6 +69,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
@@ -77,6 +87,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
@@ -85,23 +96,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="ast.h" />
-    <ClInclude Include="environment.h" />
-    <ClInclude Include="interpreter.h" />
-    <ClInclude Include="tests.h" />
-    <ClInclude Include="tokenizer.h" />
-    <ClInclude Include="parser.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="ast.c" />
-    <ClCompile Include="environment.c" />
-    <ClCompile Include="interpreter.c" />
-    <ClCompile Include="tests.c" />
-    <ClCompile Include="tokenizer.c" />
-    <ClCompile Include="main.c" />
-    <ClCompile Include="parser.c" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

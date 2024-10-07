@@ -12,8 +12,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Environment.hpp" />
+    <ClInclude Include="Expr.hpp" />
     <ClInclude Include="RuntimeError.hpp" />
     <ClInclude Include="Scanner.hpp" />
+    <ClInclude Include="Stmt.hpp" />
     <ClInclude Include="Token.hpp" />
     <ClInclude Include="TokenType.hpp" />
   </ItemGroup>
